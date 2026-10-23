@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Copy, Check, Trash2, Download, Clock, MessageSquare, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,14 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatTimeSaved } from "@/lib/utils";
 import type { HistoryEntry, SessionStats } from "@/types/hush";
+
+type HistoryDateFilter = "all" | "today" | "thisWeek";
+
+const toValidDate = (timestamp: unknown): Date | null => {
+  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return null;
+  const date = new Date(timestamp * 1000);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
 interface HistoryTabProps {
   history: HistoryEntry[];
@@ -17,10 +25,43 @@ interface HistoryTabProps {
 export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) {
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [dateFilter, setDateFilter] = useState<HistoryDateFilter>("all");
+  const [dateRefresh, setDateRefresh] = useState(0);
 
-  const filtered = history.filter((item) =>
-    item.text.toLowerCase().includes(query.toLowerCase())
+  useEffect(() => {
+    if (dateFilter === "all") return;
+
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const timeoutId = window.setTimeout(() => {
+      setDateRefresh((refresh) => refresh + 1);
+    }, nextMidnight.getTime() - now.getTime());
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dateFilter, dateRefresh]);
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const daysSinceMonday = (now.getDay() + 6) % 7;
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
+  const nextWeekStart = new Date(
+    weekStart.getFullYear(),
+    weekStart.getMonth(),
+    weekStart.getDate() + 7
   );
+
+  const filtered = history.filter((item) => {
+    if (!item.text.toLowerCase().includes(query.toLowerCase())) return false;
+    if (dateFilter === "all") return true;
+
+    const date = toValidDate(item.ts);
+    if (!date) return false;
+
+    const rangeStart = dateFilter === "today" ? todayStart : weekStart;
+    const rangeEnd = dateFilter === "today" ? tomorrowStart : nextWeekStart;
+    return date >= rangeStart && date < rangeEnd;
+  });
 
   const handleCopy = (text: string, id: number) => {
     navigator.clipboard.writeText(text);
@@ -33,8 +74,10 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
     if (!history.length) return;
     const content = history
       .map(
-        (h) =>
-          `[${new Date(h.ts * 1000).toLocaleString()}] (${h.seconds}s)\n${h.text}\n`
+        (h) => {
+          const date = toValidDate(h.ts);
+          return `[${date ? date.toLocaleString() : "Unknown date"}] (${h.seconds}s)\n${h.text}\n`;
+        }
       )
       .join("\n---\n\n");
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -48,7 +91,8 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
   };
 
   const formatTimestamp = (ts: number) => {
-    const d = new Date(ts * 1000);
+    const d = toValidDate(ts);
+    if (!d) return "Unknown date";
     return d.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
@@ -104,6 +148,29 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
         </Card>
       </div>
 
+      {/* Date Filters */}
+      <div className="flex items-center gap-1 p-1 w-fit rounded-full border border-white/10 bg-neutral-900/60" role="group" aria-label="Filter history by date">
+        {([
+          ["all", "All"],
+          ["today", "Today"],
+          ["thisWeek", "This Week"],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={dateFilter === value}
+            onClick={() => setDateFilter(value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              dateFilter === value
+                ? "bg-white text-black font-semibold"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Search & Actions Bar */}
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1">
@@ -152,11 +219,13 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
           <div className="p-12 text-center border border-white/5 rounded-2xl bg-neutral-900/30">
             <MessageSquare className="w-8 h-8 mx-auto text-neutral-600 mb-2" />
             <p className="text-sm font-semibold text-neutral-300">
-              {query ? "No matching dictations found" : "No dictations yet"}
+              {query || dateFilter !== "all"
+                ? "No dictations match these filters"
+                : "No dictations yet"}
             </p>
             <p className="text-xs text-neutral-500 mt-1">
-              {query
-                ? "Try searching for a different keyword"
+              {query || dateFilter !== "all"
+                ? "Try adjusting the search or date filter."
                 : "Hold your hotkey and dictate anywhere to build your history."}
             </p>
           </div>
