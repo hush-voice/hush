@@ -181,6 +181,9 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
                       <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-white/10 text-neutral-400">
                         {wordCount} {wordCount === 1 ? "word" : "words"}
                       </Badge>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-white/10 text-neutral-400">
+                        {item.text.length} {item.text.length === 1 ? "character" : "characters"}
+                      </Badge>
                     </div>
 
                     <p className="text-sm text-neutral-200 leading-relaxed font-normal whitespace-pre-wrap select-text">
