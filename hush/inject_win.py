@@ -179,8 +179,26 @@ def type_text(text: str):
 
 # ---------- clipboard fallback ----------
 
+CF_BITMAP = 2
+CF_DIB = 8
+CF_DIBV5 = 17
+CF_HDROP = 15
 CF_UNICODETEXT = 13
 GMEM_MOVEABLE = 0x0002
+
+user32.IsClipboardFormatAvailable.restype = wt.BOOL
+user32.IsClipboardFormatAvailable.argtypes = [wt.UINT]
+
+
+def has_non_text_clipboard() -> bool:
+    """True if clipboard holds rich formats (images/files) that text restore would destroy."""
+    try:
+        for fmt in (CF_BITMAP, CF_DIB, CF_DIBV5, CF_HDROP):
+            if user32.IsClipboardFormatAvailable(fmt):
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def _get_clipboard_text():
@@ -224,7 +242,7 @@ def paste_text(text: str):
     old = _get_clipboard_text()
     if not _set_clipboard_text(text):
         return False
-    time.sleep(0.05)
+    time.sleep(0.08)
     events = [
         _key_event(vk=VK_CONTROL),
         _key_event(vk=VK_V),
@@ -233,7 +251,7 @@ def paste_text(text: str):
     ]
     arr = (INPUT * len(events))(*events)
     ok = user32.SendInput(len(events), arr, ctypes.sizeof(INPUT)) == len(events)
-    time.sleep(0.3)  # let the target app read the clipboard before restoring
+    time.sleep(0.35)  # allow target window to process paste before restoring
     if old is not None:
         _set_clipboard_text(old)
     return ok
@@ -246,7 +264,7 @@ def insert_text(text: str, mode: str = "type", paste_threshold: int = 400) -> bo
     if foreground_injection_blocked():
         return False
     wait_modifiers_released()
-    if mode == "paste" or len(text) > paste_threshold:
+    if (mode == "paste" or len(text) > paste_threshold) and not has_non_text_clipboard():
         # trailing newlines must be real Enter presses (pasted \n doesn't submit)
         body = text.rstrip("\n")
         trail = text[len(body):]
