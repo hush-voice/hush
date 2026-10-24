@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="hush_banner.png" alt="Hush - Unbound Edge-Native Voice Engine" width="100%" />
+<!-- <img src="hush_banner.png" alt="Hush - Unbound Edge-Native Voice Engine" width="100%" /> -->
 
 <br>
 
