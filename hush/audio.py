@@ -132,10 +132,20 @@ class Recorder:
         self._lock = threading.Lock()
         self._stream_lock = threading.RLock()
 
-    def open(self, device=None):
-        """(Re)open the warm stream with thread safety and idempotence."""
+    def is_healthy(self) -> bool:
+        """True if the underlying stream is instantiated, non-aborted, and active."""
         with self._stream_lock:
-            if self._stream is not None and device == self._device and self._stream.active:
+            if self._stream is None:
+                return False
+            try:
+                return bool(self._stream.active)
+            except Exception:
+                return False
+
+    def open(self, device=None):
+        """(Re)open the warm stream with thread safety, idempotence, and auto-recovery."""
+        with self._stream_lock:
+            if self._stream is not None and device == self._device and self.is_healthy():
                 return
             self.close()
             self._stream = open_input_stream(device, self._callback)
@@ -155,8 +165,7 @@ class Recorder:
 
     @property
     def ready(self):
-        with self._stream_lock:
-            return self._stream is not None and self._stream.active
+        return self.is_healthy()
 
     def _callback(self, indata, frames, time_info, status):
         """High-priority PortAudio callback. Guarded against unhandled exceptions to prevent CallbackAbort."""
@@ -178,8 +187,10 @@ class Recorder:
             pass
 
     def begin(self, device=None):
-        """Start keeping audio. Opens the stream first if needed with stream lock."""
+        """Start keeping audio. Auto-recovers broken or hotplug-disconnected streams."""
         with self._stream_lock:
+            if not self.is_healthy():
+                self.close()
             self.open(device)
             with self._lock:
                 self._chunks = []

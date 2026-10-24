@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, patch
 import numpy as np
 from hush.audio import Recorder
 
@@ -39,6 +40,23 @@ class TestRecorderBuffer(unittest.TestCase):
         except Exception as e:
             self.fail(f"_callback raised an unhandled exception: {e}")
         self.assertEqual(rec.sample_count, 1600)
+
+    def test_recorder_hotplug_recovery(self):
+        rec = Recorder()
+        # Simulate a dead/disconnected stream
+        mock_dead_stream = MagicMock()
+        mock_dead_stream.active = False
+        rec._stream = mock_dead_stream
+        self.assertFalse(rec.is_healthy())
+
+        # Simulate reopening with mock new healthy stream
+        mock_new_stream = MagicMock()
+        mock_new_stream.active = True
+
+        with patch("hush.audio.open_input_stream", return_value=mock_new_stream):
+            rec.begin("default")
+            self.assertTrue(rec.is_healthy())
+            mock_new_stream.start.assert_called_once()
 
 
 if __name__ == "__main__":
