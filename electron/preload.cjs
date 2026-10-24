@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   checkUpdate: () => ipcRenderer.send("update:check"),
   installUpdate: () => ipcRenderer.send("update:install"),
   getAppVersion: () => ipcRenderer.invoke("app:version"),
+  getAuthToken: () => ipcRenderer.sendSync("app:get-auth-token-sync"),
   repositionOverlay: (dock) => ipcRenderer.send("overlay:reposition", dock),
   onUpdateChecking: (callback) => {
     ipcRenderer.on("update:checking", () => callback());

@@ -99,7 +99,12 @@ export function useHush() {
     }
 
     try {
-      const ws = new WebSocket(WS_URL);
+      let token = "";
+      try {
+        token = window.electronAPI?.getAuthToken?.() || "";
+      } catch {}
+      const targetUrl = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+      const ws = new WebSocket(targetUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -109,6 +114,9 @@ export function useHush() {
         }
         retryCountRef.current = 0;
         setConnected(true);
+        if (token) {
+          send({ action: "auth", token });
+        }
         send({ action: "get_initial_state" });
       };
 

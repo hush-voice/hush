@@ -27,6 +27,8 @@ interface Window {
     checkUpdate: () => void;
     installUpdate: () => void;
     getAppVersion: () => Promise<string>;
+    getAuthToken?: () => string;
+    repositionOverlay?: (dock?: "bottom" | "top") => void;
     onUpdateChecking: (callback: () => void) => void;
     onUpdateAvailable: (callback: (data: { version: string; releaseDate?: string; releaseNotes?: any }) => void) => void;
     onUpdateProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => void;
@@ -37,4 +39,3 @@ interface Window {
     onEngineError: (callback: (err: string) => void) => void;
   };
 }
-

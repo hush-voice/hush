@@ -23,6 +23,7 @@ let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let pythonProcess: ChildProcess | null = null;
+let sessionAuthToken: string = "";
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
@@ -115,9 +116,13 @@ function startPythonService() {
   const root = getAppRoot();
   const py = findPython();
   const serviceCwd = py.cwd || (isDev ? root : process.resourcesPath);
+  if (!sessionAuthToken) {
+    sessionAuthToken = process.env.HUSH_AUTH_TOKEN || require("crypto").randomBytes(16).toString("hex");
+  }
   const env = {
     ...process.env,
     PYTHONPATH: isDev ? root : process.resourcesPath,
+    HUSH_AUTH_TOKEN: sessionAuthToken,
   };
 
   console.log(`[Hush] Launching Python backend: ${py.cmd} ${py.args.join(" ")} (cwd: ${serviceCwd})`);
@@ -382,6 +387,10 @@ ipcMain.on("set:autostart", (_event, enabled: boolean) => {
 
 ipcMain.handle("app:version", () => {
   return app.getVersion();
+});
+
+ipcMain.on("app:get-auth-token-sync", (event) => {
+  event.returnValue = sessionAuthToken;
 });
 
 function initAutoUpdater() {

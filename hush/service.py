@@ -14,6 +14,7 @@ from typing import Dict, Any, Set
 
 import numpy as np
 import websockets
+from urllib.parse import urlparse, parse_qs
 
 from . import APP_NAME, APP_VERSION, history, inject, sounds, textproc
 from .audio import Recorder, resolve_device, list_input_devices, open_input_stream, SILENCE_PEAK
@@ -47,6 +48,8 @@ class HushService:
         self._state_message = ""
         self._t0 = 0.0
         self._clients: Set[websockets.WebSocketServerProtocol] = set()
+        self._authenticated_clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.auth_token = os.environ.get("HUSH_AUTH_TOKEN") or None
         self._loop: asyncio.AbstractEventLoop = None
 
         # Mic meter for settings UI calibration
@@ -469,6 +472,25 @@ class HushService:
         action = req.get("action")
         reply = {"action": action, "status": "ok"}
 
+        if action == "auth":
+            token = req.get("token")
+            if not self.auth_token or token == self.auth_token:
+                self._authenticated_clients.add(ws)
+                reply["authenticated"] = True
+            else:
+                reply["authenticated"] = False
+                reply["status"] = "unauthorized"
+                await ws.send(json.dumps(reply))
+                await ws.close(4401, "Unauthorized")
+                return
+
+        if self.auth_token and ws not in self._authenticated_clients:
+            reply["status"] = "unauthorized"
+            reply["error"] = "Authentication required"
+            await ws.send(json.dumps(reply))
+            await ws.close(4401, "Unauthorized")
+            return
+
         if action == "ping":
             reply["time"] = time.time()
 
@@ -588,6 +610,21 @@ class HushService:
     # --- Connection Lifecycle ---
 
     async def ws_handler(self, ws: websockets.WebSocketServerProtocol):
+        authenticated = False
+        if not self.auth_token:
+            authenticated = True
+        else:
+            try:
+                parsed = urlparse(getattr(ws, "path", ""))
+                query_token = parse_qs(parsed.query).get("token", [None])[0]
+                if query_token and query_token == self.auth_token:
+                    authenticated = True
+            except Exception:
+                pass
+
+        if authenticated:
+            self._authenticated_clients.add(ws)
+
         self._clients.add(ws)
         try:
             async for message in ws:
@@ -596,6 +633,7 @@ class HushService:
             pass
         finally:
             self._clients.discard(ws)
+            self._authenticated_clients.discard(ws)
 
     async def run_server(self):
         self._loop = asyncio.get_running_loop()

@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openDataFolder: () => ipcRenderer.send("open:data-folder"),
   setAutostart: (enabled: boolean) => ipcRenderer.send("set:autostart", enabled),
   repositionOverlay: (dock?: "bottom" | "top") => ipcRenderer.send("overlay:reposition", dock),
+  getAuthToken: () => ipcRenderer.sendSync("app:get-auth-token-sync"),
 });
