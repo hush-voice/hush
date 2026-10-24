@@ -210,7 +210,8 @@ class HushService:
             self.engine, self.recorder,
             self.cfg.get("language"),
             self.cfg.get("dictionary"),
-            min_s, max_s
+            min_s, max_s,
+            sensitivity=self.cfg.get("vad_sensitivity", "medium")
         )
         self._feeder_stop.clear()
         self._feeder = threading.Thread(target=self._feed_loop, daemon=True)

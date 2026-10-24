@@ -64,6 +64,7 @@ DEFAULTS = {
     "hands_free_mode": False,
     "dictionary": ["Suryansh"],  # names/jargon to bias + post-correct
     "stats": {"words": 0, "utterances": 0, "audio_seconds": 0.0},
+    "vad_sensitivity": "medium",  # "high" (0.005), "medium" (0.010), "low" (0.020)
 }
 
 

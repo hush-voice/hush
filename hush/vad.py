@@ -13,23 +13,35 @@ import numpy as np
 
 FRAME = 1024
 HOP = 512
-VOICED_RMS = 0.01        # a frame counts as "voiced" above this energy
+VOICED_RMS = 0.01        # default voiced energy threshold
 FLATNESS_MAX = 0.50      # mean flatness over voiced frames above this => noise
 MIN_VOICED_FRAC = 0.10   # need at least this fraction of frames to be voiced
 _WIN = np.hanning(FRAME)
 
+SENSITIVITY_THRESHOLDS = {
+    "high": 0.005,       # quiet speakers or low-gain headsets
+    "medium": 0.010,     # default balanced sensitivity
+    "low": 0.020,        # aggressive gate for loud/fan-heavy rooms
+}
 
-def has_speech(audio: np.ndarray) -> bool:
+
+def resolve_threshold(sensitivity: str = "medium") -> float:
+    """Return configured RMS energy threshold for speech gating."""
+    return SENSITIVITY_THRESHOLDS.get(str(sensitivity).lower(), VOICED_RMS)
+
+
+def has_speech(audio: np.ndarray, sensitivity: str = "medium", threshold: float = None) -> bool:
     """True if `audio` plausibly contains speech (not silence or static noise)."""
+    rms_thresh = threshold if threshold is not None else resolve_threshold(sensitivity)
     if len(audio) < FRAME:
-        return float(np.sqrt(np.mean(audio ** 2))) > VOICED_RMS
+        return float(np.sqrt(np.mean(audio ** 2))) > rms_thresh
     voiced = 0
     total = 0
     flats = []
     for i in range(0, len(audio) - FRAME, HOP):
         frame = audio[i:i + FRAME]
         total += 1
-        if np.sqrt(np.mean(frame ** 2)) < VOICED_RMS:
+        if np.sqrt(np.mean(frame ** 2)) < rms_thresh:
             continue
         voiced += 1
         mag = np.abs(np.fft.rfft(frame * _WIN)) + 1e-10

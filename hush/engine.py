@@ -303,15 +303,14 @@ class Engine:
             return ""
         return text
 
-    def transcribe(self, audio: np.ndarray, language="auto", prompt=None) -> str:
-        """Transcribe one chunk. `language`: 'auto' (English+Hindi, the robust default),
-        'auto-all' (unconstrained), 'en'/'hi'/<code> (forced), or ignored for .en models."""
+    def transcribe(self, audio: np.ndarray, language="auto", prompt=None, sensitivity="medium") -> str:
+        """Transcribe one chunk with configurable VAD sensitivity."""
         with self._lock:
             pipe = self.pipe
             name = self.model_name
         if pipe is None or len(audio) < SAMPLE_RATE // 4:
             return ""
-        if not vad.has_speech(audio):     # silence or static noise -> no hallucination
+        if not vad.has_speech(audio, sensitivity=sensitivity):     # silence or static noise -> no hallucination
             return ""
 
         # English-only models: language is fixed, just transcribe.
@@ -373,13 +372,15 @@ class DictationSession:
     OVERLAP_S = 1.5   # re-transcribe this much across a forced (mid-speech) seam
 
     def __init__(self, engine: Engine, recorder, language, vocabulary,
-                 min_commit_s=CHUNK_SECONDS, max_commit_s=CHUNK_SECONDS * 2):
+                 min_commit_s=CHUNK_SECONDS, max_commit_s=CHUNK_SECONDS * 2,
+                 sensitivity="medium"):
         self.engine = engine
         self.recorder = recorder
         self.language = language
         self.vocab = vocabulary      # list of dictionary words
         self.min_commit = min_commit_s
         self.max_commit = max_commit_s
+        self.sensitivity = sensitivity
         self.committed = 0           # sample index transcribed so far
         self.parts = []              # committed text chunks (raw)
         self._dedup_next = False     # the next chunk re-covers a forced seam
