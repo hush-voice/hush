@@ -64,11 +64,15 @@ export function HistoryTab({ history, stats, onClearHistory, onDeleteHistoryItem
     return date >= rangeStart && date < rangeEnd;
   });
 
-  const handleCopy = (text: string, id: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    toast.success("Copied to clipboard!");
-    setTimeout(() => setCopiedId(null), 1500);
+  const handleCopy = async (text: string, id: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      toast.success("Copied to clipboard!");
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      toast.error("Could not copy to clipboard. Check clipboard permissions and try again.");
+    }
   };
 
   const handleDelete = (ts: number) => {
