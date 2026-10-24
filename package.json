@@ -1,6 +1,6 @@
 {
   "name": "hush",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Unbound edge native voice engine - 100% local",
   "main": "dist-electron/main.js",
   "type": "module",
