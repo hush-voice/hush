@@ -239,6 +239,12 @@ export function useHush() {
               setHistory([]);
               break;
 
+            case "history_item_deleted":
+              if (msg.ts !== undefined) {
+                setHistory((prev) => prev.filter((item) => Math.abs(item.ts - msg.ts) >= 1e-4));
+              }
+              break;
+
             case "enabled_state":
               setEnabled(msg.enabled);
               break;
@@ -320,6 +326,11 @@ export function useHush() {
     send({ action: "clear_history" });
   }, [send]);
 
+  const deleteHistoryItem = useCallback((ts: number) => {
+    setHistory((prev) => prev.filter((item) => Math.abs(item.ts - ts) >= 1e-4));
+    send({ action: "delete_history_item", ts });
+  }, [send]);
+
   const pauseHotkeys = useCallback((paused: boolean) => {
     send({ action: "pause_hotkeys", paused });
   }, [send]);
@@ -371,6 +382,7 @@ export function useHush() {
     startMeter,
     stopMeter,
     clearHistory,
+    deleteHistoryItem,
     pauseHotkeys,
     playSound,
   };

@@ -109,6 +109,7 @@ export function MainHub({ hush }: MainHubProps) {
                 history={hush.history}
                 stats={hush.stats}
                 onClearHistory={hush.clearHistory}
+                onDeleteHistoryItem={hush.deleteHistoryItem}
               />
             </TabsContent>
 

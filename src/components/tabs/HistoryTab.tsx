@@ -20,9 +20,10 @@ interface HistoryTabProps {
   history: HistoryEntry[];
   stats: SessionStats;
   onClearHistory: () => void;
+  onDeleteHistoryItem?: (ts: number) => void;
 }
 
-export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) {
+export function HistoryTab({ history, stats, onClearHistory, onDeleteHistoryItem }: HistoryTabProps) {
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [dateFilter, setDateFilter] = useState<HistoryDateFilter>("all");
@@ -68,6 +69,13 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
     setCopiedId(id);
     toast.success("Copied to clipboard!");
     setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const handleDelete = (ts: number) => {
+    if (onDeleteHistoryItem) {
+      onDeleteHistoryItem(ts);
+      toast.success("Dictation removed from history");
+    }
   };
 
   const handleExport = () => {
@@ -260,19 +268,32 @@ export function HistoryTab({ history, stats, onClearHistory }: HistoryTabProps) 
                     </p>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopy(item.text, index)}
-                    className="h-8 px-2.5 rounded-full border border-white/5 opacity-80 group-hover:opacity-100 hover:bg-white/10"
-                    title="Copy to clipboard"
-                  >
-                    {copiedId === index ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 text-neutral-300" />
+                  <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(item.text, index)}
+                      className="h-8 px-2.5 rounded-full border border-white/5 hover:bg-white/10"
+                      title="Copy to clipboard"
+                    >
+                      {copiedId === index ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 text-neutral-300" />
+                      )}
+                    </Button>
+                    {onDeleteHistoryItem && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(item.ts)}
+                        className="h-8 px-2.5 rounded-full border border-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400"
+                        title="Delete dictation"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
               </Card>
             );

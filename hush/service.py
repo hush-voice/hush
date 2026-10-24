@@ -544,6 +544,16 @@ class HushService:
             reply["history"] = []
             self.broadcast({"type": "history_cleared"})
 
+        elif action == "delete_history_item":
+            ts = req.get("ts")
+            deleted = False
+            if ts is not None:
+                deleted = history.delete_entry(float(ts))
+            reply["deleted"] = deleted
+            reply["ts"] = ts
+            if deleted:
+                self.broadcast({"type": "history_item_deleted", "ts": ts})
+
         elif action == "pause_hotkeys":
             self.enabled = not req.get("paused", False)
             reply["enabled"] = self.enabled

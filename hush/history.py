@@ -63,3 +63,49 @@ def clear():
                 os.remove(HISTORY_PATH)
         except OSError as e:
             log.error("Failed to remove history log %s: %s", HISTORY_PATH, e)
+
+
+def delete_entry(ts: float) -> bool:
+    """Delete a single history entry matching timestamp `ts`."""
+    with _lock:
+        if not os.path.exists(HISTORY_PATH):
+            return False
+        try:
+            surviving = []
+            deleted = False
+            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                for line in f:
+                    s = line.strip()
+                    if not s:
+                        continue
+                    try:
+                        entry = json.loads(s)
+                        if not deleted and abs(float(entry.get("ts", 0)) - float(ts)) < 1e-4:
+                            deleted = True
+                            continue
+                        surviving.append(s)
+                    except (ValueError, TypeError):
+                        surviving.append(s)
+
+            if deleted:
+                tmp_path = HISTORY_PATH + ".tmp"
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    for s in surviving:
+                        f.write(s + "\n")
+                    f.flush()
+                    os.fsync(f.fileno())
+
+                import sys
+                if sys.platform == "win32":
+                    try:
+                        os.replace(tmp_path, HISTORY_PATH)
+                    except OSError:
+                        time.sleep(0.05)
+                        os.replace(tmp_path, HISTORY_PATH)
+                else:
+                    os.replace(tmp_path, HISTORY_PATH)
+                return True
+            return False
+        except OSError as e:
+            log.error("Failed to delete entry from history log %s: %s", HISTORY_PATH, e)
+            return False

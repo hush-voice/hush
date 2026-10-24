@@ -38,6 +38,24 @@ class TestHistory(unittest.TestCase):
                 history.clear()
                 self.assertEqual(len(history.load()), 0)
 
+    def test_delete_single_entry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            hist_path = os.path.join(tmpdir, "history.jsonl")
+            with patch("hush.history.HISTORY_PATH", hist_path):
+                history.append("Keep 1", 1.0)
+                history.append("Delete me", 2.0)
+                history.append("Keep 2", 3.0)
+                entries = history.load(limit=10)
+                self.assertEqual(len(entries), 3)
+
+                to_delete = next(e for e in entries if e["text"] == "Delete me")
+                success = history.delete_entry(to_delete["ts"])
+                self.assertTrue(success)
+
+                remaining = history.load(limit=10)
+                self.assertEqual(len(remaining), 2)
+                self.assertNotIn("Delete me", [e["text"] for e in remaining])
+
 
 if __name__ == "__main__":
     unittest.main()
