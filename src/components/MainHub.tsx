@@ -131,6 +131,7 @@ export function MainHub({ hush }: MainHubProps) {
                 onSelectComputeDevice={(d) => hush.updateConfig("compute_device", d)}
                 onSelectLanguage={(l) => hush.updateConfig("language", l)}
                 onDownloadModel={(m) => hush.downloadModel(m)}
+                onCancelDownloadModel={hush.cancelModelDownload}
               />
             </TabsContent>
 

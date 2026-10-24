@@ -148,9 +148,23 @@ def resolve_compute_device(device, model_name):
 
 
 def is_downloaded(name):
-    """True only if every file the pipeline needs is present (see _REQUIRED_FILES)."""
+    """True only if every file the pipeline needs is present and non-empty (see _REQUIRED_FILES)."""
     d = model_dir(name)
-    return all(os.path.exists(os.path.join(d, f)) for f in _REQUIRED_FILES)
+    try:
+        return all(os.path.exists(os.path.join(d, f)) and os.path.getsize(os.path.join(d, f)) > 1024 for f in _REQUIRED_FILES)
+    except OSError:
+        return False
+
+
+def verify_model_integrity(name):
+    """Check that all required model shards are present and meet minimum size requirements."""
+    d = model_dir(name)
+    corrupted = []
+    for f in _REQUIRED_FILES:
+        p = os.path.join(d, f)
+        if not os.path.exists(p) or os.path.getsize(p) <= 1024:
+            corrupted.append(f)
+    return len(corrupted) == 0, corrupted
 
 
 def missing_files(name):

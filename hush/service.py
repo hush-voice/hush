@@ -358,6 +358,25 @@ class HushService:
 
     # --- Model Download Operations ---
 
+    def cancel_model_download(self):
+        if self._dl_model:
+            canceled_name = self._dl_model
+            log.info("Canceling model download for %s", canceled_name)
+            self._dl_error = "Download cancelled by user"
+            self._dl_model = None
+            self.broadcast({
+                "type": "download_progress",
+                "model": canceled_name,
+                "downloaded_bytes": 0,
+                "total_bytes": self._dl_total or 0,
+                "percent": 0,
+                "is_alive": False,
+                "error": "Cancelled",
+                "done": True,
+            })
+            return True
+        return False
+
     def start_model_download(self, name: str):
         if not name or self._dl_model or name not in MODELS:
             return False
@@ -525,6 +544,10 @@ class HushService:
             model = req.get("model")
             ok = self.start_model_download(model)
             reply["status"] = "started" if ok else "failed"
+
+        elif action == "cancel_model_download":
+            ok = self.cancel_model_download()
+            reply["status"] = "cancelled" if ok else "not_running"
 
         elif action == "play_sound":
             which = req.get("which", "start")

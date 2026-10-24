@@ -314,6 +314,11 @@ export function useHush() {
     send({ action: "download_model", model });
   }, [send]);
 
+  const cancelModelDownload = useCallback(() => {
+    send({ action: "cancel_model_download" });
+    setDownloadProgress(null);
+  }, [send]);
+
   const startMeter = useCallback(() => {
     send({ action: "start_meter" });
   }, [send]);
@@ -379,6 +384,7 @@ export function useHush() {
     updateConfigs,
     loadModel,
     downloadModel,
+    cancelModelDownload,
     startMeter,
     stopMeter,
     clearHistory,

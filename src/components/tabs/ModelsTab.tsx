@@ -1,5 +1,5 @@
 import React from "react";
-import { Cpu, Download, Check, HardDrive, Globe, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { Cpu, Download, Check, HardDrive, Globe, Sparkles, AlertCircle, Loader2, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ interface ModelsTabProps {
   onSelectComputeDevice: (device: string) => void;
   onSelectLanguage: (language: string) => void;
   onDownloadModel: (model: string) => void;
+  onCancelDownloadModel?: () => void;
 }
 
 export function ModelsTab({
@@ -51,6 +52,7 @@ export function ModelsTab({
   onSelectComputeDevice,
   onSelectLanguage,
   onDownloadModel,
+  onCancelDownloadModel,
 }: ModelsTabProps) {
   const isDownloading = downloadProgress && downloadProgress.is_alive;
 
@@ -196,9 +198,23 @@ export function ModelsTab({
                   {/* Actions */}
                   <div className="shrink-0 flex items-center gap-2">
                     {isCurrentDownload ? (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 text-xs text-neutral-300">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Downloading…</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 text-xs text-neutral-300">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Downloading…</span>
+                        </div>
+                        {onCancelDownloadModel && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={onCancelDownloadModel}
+                            className="h-8 px-2.5 rounded-full border border-red-500/30 text-red-400 hover:bg-red-500/20 text-xs"
+                            title="Cancel download"
+                          >
+                            <X className="w-3.5 h-3.5 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     ) : isDownloaded ? (
                       <Button
