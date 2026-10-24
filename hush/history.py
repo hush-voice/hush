@@ -11,15 +11,21 @@ from .config import HISTORY_PATH
 
 log = logging.getLogger("hush.history")
 _lock = threading.Lock()
+_last_ts = 0.0
 
 
 def append(text: str, duration: float):
     """Append a dictation entry to the history JSONL log safely."""
+    global _last_ts
     if not text:
         return
-    entry = {"ts": time.time(), "text": text, "seconds": round(duration, 1)}
     parent_dir = os.path.dirname(HISTORY_PATH)
     with _lock:
+        now = time.time()
+        if now <= _last_ts:
+            now = _last_ts + 0.001
+        _last_ts = now
+        entry = {"ts": now, "text": text, "seconds": round(duration, 1)}
         try:
             if parent_dir:
                 os.makedirs(parent_dir, exist_ok=True)
@@ -65,14 +71,15 @@ def clear():
             log.error("Failed to remove history log %s: %s", HISTORY_PATH, e)
 
 
-def delete_entry(ts: float) -> bool:
-    """Delete a single history entry matching timestamp `ts`."""
+def delete_entry(ts: float, text: str = None) -> bool:
+    """Delete a single history entry matching timestamp `ts` (and optional `text`)."""
     with _lock:
         if not os.path.exists(HISTORY_PATH):
             return False
         try:
             surviving = []
             deleted = False
+            target_ts = float(ts)
             with open(HISTORY_PATH, "r", encoding="utf-8") as f:
                 for line in f:
                     s = line.strip()
@@ -80,7 +87,10 @@ def delete_entry(ts: float) -> bool:
                         continue
                     try:
                         entry = json.loads(s)
-                        if not deleted and abs(float(entry.get("ts", 0)) - float(ts)) < 1e-4:
+                        entry_ts = float(entry.get("ts", 0))
+                        same_ts = abs(entry_ts - target_ts) < 1e-6
+                        same_text = (text is None) or (entry.get("text") == text)
+                        if not deleted and same_ts and same_text:
                             deleted = True
                             continue
                         surviving.append(s)

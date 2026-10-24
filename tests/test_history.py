@@ -49,7 +49,7 @@ class TestHistory(unittest.TestCase):
                 self.assertEqual(len(entries), 3)
 
                 to_delete = next(e for e in entries if e["text"] == "Delete me")
-                success = history.delete_entry(to_delete["ts"])
+                success = history.delete_entry(to_delete["ts"], to_delete["text"])
                 self.assertTrue(success)
 
                 remaining = history.load(limit=10)

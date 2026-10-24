@@ -4,6 +4,7 @@ All app data lives under one directory: %LOCALAPPDATA%\\Hush on Windows,
 $XDG_DATA_HOME/hush (default ~/.local/share/hush) elsewhere.
 """
 
+import copy
 import json
 import logging
 import os
@@ -75,7 +76,7 @@ class Config:
         self._lock = threading.Lock()
         os.makedirs(APP_DIR, exist_ok=True)
         os.makedirs(MODELS_DIR, exist_ok=True)
-        self._data = dict(DEFAULTS)
+        self._data = copy.deepcopy(DEFAULTS)
         stored = {}
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
