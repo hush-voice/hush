@@ -202,6 +202,26 @@ function createMainWindow() {
   });
 }
 
+function positionOverlay(dockPosition: "bottom" | "top" = "bottom") {
+  if (!overlayWindow) return;
+  try {
+    const cursorPos = screen.getCursorScreenPoint();
+    const activeDisplay = screen.getDisplayNearestPoint(cursorPos) || screen.getPrimaryDisplay();
+    const { x: workX, y: workY, width, height } = activeDisplay.workArea;
+
+    const overlayWidth = 400;
+    const overlayHeight = 76;
+    const x = Math.round(workX + (width - overlayWidth) / 2);
+    const y = dockPosition === "top"
+      ? Math.round(workY + 20)
+      : Math.round(workY + height - overlayHeight - 20);
+
+    overlayWindow.setBounds({ x, y, width: overlayWidth, height: overlayHeight });
+  } catch (err) {
+    console.error("[Hush] Failed to reposition overlay window:", err);
+  }
+}
+
 function createOverlayWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -247,6 +267,7 @@ function createOverlayWindow() {
   }
 
   overlayWindow.once("ready-to-show", () => {
+    positionOverlay();
     overlayWindow?.showInactive();
   });
 }
@@ -333,6 +354,10 @@ ipcMain.on("window:close", (event) => {
 ipcMain.on("window:show-main", () => {
   mainWindow?.show();
   mainWindow?.focus();
+});
+
+ipcMain.on("overlay:reposition", (_event, dockPosition?: "bottom" | "top") => {
+  positionOverlay(dockPosition);
 });
 
 ipcMain.on("open:data-folder", () => {
@@ -458,6 +483,13 @@ app.whenReady().then(() => {
   createMainWindow();
   createOverlayWindow();
   createTray();
+
+  screen.on("display-metrics-changed", () => {
+    positionOverlay();
+  });
+  screen.on("display-removed", () => {
+    positionOverlay();
+  });
 
   initAutoUpdater();
   // Auto-check on launch after 3 seconds

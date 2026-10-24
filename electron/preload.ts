@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   showMainWindow: () => ipcRenderer.send("window:show-main"),
   openDataFolder: () => ipcRenderer.send("open:data-folder"),
   setAutostart: (enabled: boolean) => ipcRenderer.send("set:autostart", enabled),
+  repositionOverlay: (dock?: "bottom" | "top") => ipcRenderer.send("overlay:reposition", dock),
 });
