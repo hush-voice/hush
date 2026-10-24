@@ -26,7 +26,7 @@ A fast, private, 100% offline alternative to cloud dictation tools like Wispr Fl
 
 <br>
 
-<img src="docs/social-preview.png" alt="Hush Unbound Edge-Native Voice Engine" width="720" />
+<!-- <img src="docs/social-preview.png" alt="Hush Unbound Edge-Native Voice Engine" width="720" /> -->
 
 <br><br>
 
