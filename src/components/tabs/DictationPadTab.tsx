@@ -55,10 +55,14 @@ export function DictationPadTab({
     }
   }, [lastTranscription]);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!padText) return;
-    navigator.clipboard.writeText(padText);
-    toast.success("Copied to clipboard!");
+    try {
+      await navigator.clipboard.writeText(padText);
+      toast.success("Copied to clipboard!");
+    } catch {
+      toast.error("Could not copy to clipboard. Check clipboard permissions and try again.");
+    }
   };
 
   const handleClear = () => {
